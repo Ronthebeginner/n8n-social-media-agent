@@ -35,7 +35,7 @@ Just scrapes news, drafts a Facebook post, and generates an image. Built for my 
 
 1. Import the JSON workflows into n8n.
 2. Add your RSS feed URLs.
-3. Set up your Flux API key.
+3. Set up your image and chat model's API key.
 4. Connect Facebook page (with permissions).
 5. The workflow drafts everything – just copy the output to Facebook for now.
 
