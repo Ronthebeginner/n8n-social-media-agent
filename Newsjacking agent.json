@@ -1,0 +1,990 @@
+{
+  "name": "Newsjacking agent",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "try to handle all \nincluding content topic\ncontent\nembedding\nSEO + hashtag\n",
+        "width": 374
+      },
+      "id": "8f156ab4-ba77-4213-b5f6-3e11f32dea82",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2016,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "content": "extract clean content + relevance check\n\n\n",
+        "height": 96
+      },
+      "id": "698c7f97-5b15-40d5-9c02-4f5a60e5336c",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1232,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "醫念科技 AI 社群行銷助手 🧠",
+        "formDescription": "選擇產品方向，AI 會自動根據特定的產品路徑為您產出排版精美的貼文。",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "請選擇今日推廣產品/方向",
+              "fieldType": "dropdown",
+              "fieldName": "product_choice",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Neurogym"
+                  },
+                  {
+                    "option": "Physioplay"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c866f62d-1f2e-45ec-98c4-b374450042bc",
+      "name": "Pick product",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -112,
+        1072
+      ],
+      "webhookId": "d0b8ae09-50d8-4cda-8436-1028ce239d10"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "xmYJXzW5u02RbmGi",
+          "mode": "list",
+          "cachedResultName": "Articles"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "isEmpty"
+            },
+            {
+              "keyName": "category",
+              "keyValue": "={{ $json.product_choice }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "c30474a5-6ceb-4467-8e9f-c6c0d4f75180",
+      "name": "Get new articles",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        112,
+        1072
+      ]
+    },
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "pubdate",
+              "order": "descending"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f9bc2bc6-ab0f-4adf-813e-c02d090dae14",
+      "name": "Sort by newest",
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        336,
+        1072
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v2/scrape",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "firecrawlApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"url\": \"{{ $json.url }}\",\n  \"formats\": [\"markdown\"],\n  \"onlyMainContent\": true\n}\n",
+        "options": {}
+      },
+      "id": "ae46241c-3f75-40d5-a0a8-205a4997b9ca",
+      "name": "Scrape article",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1008,
+        784
+      ],
+      "retryOnFail": true,
+      "credentials": {
+        "firecrawlApi": {
+          "id": "QAuJB5fZRu1xxgNz",
+          "name": "Firecrawl account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.data.markdown }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "clean content",
+              "description": "請通讀輸入的 Markdown 內文，將其中的文章/新聞主體段落完整「摳出」並複製過來。  【鐵律規則 - 嚴禁重寫與合成】： 1. 你是一個「原文搬運工」，必須保持新聞主體內文的原始句型、段落結構和文字原封不動。絕對不允許進行任何概括、濃縮、簡化、摘要或用你自己的話重新合成。 2. 你的唯一工作是進行「物理過濾」：徹底、乾淨地剔除掉夾雜在原文之間的股市數字看板（如恒生指數、期指等）、網頁選單、廣告、頁尾導覽連結。 3. 移除文本中所有裸露的網址連結（URLs）、HTML 標籤，以及不流暢的 Markdown 括號（例如遇到 `[退役職業足球員](url)` 時，必須強行剝離網址，只保留純字串 `退役職業足球員`）。 4. 最終輸出的每一句話，都必須是原本網頁中本來就存在的純文字段落。你輸出的第一句話，必須與原文新聞主體的第一句話完全一致；你輸出的最後一句話，必須與原文新聞主體的最後一句話完全一致。絕對不能在中途截斷文章。"
+            },
+            {
+              "name": "aida_analysis",
+              "description": "Please output comments for the following 4 dimensions: awareness\": \"Strong/Medium/Weak + 簡評\", \"interest\": \"Strong/Medium/Weak + 簡評\", \"desire\": \"Strong/Medium/Weak + 簡評\", \"action\": \"Strong/Medium/Weak + 簡評"
+            },
+            {
+              "name": "best_dimension",
+              "description": "Output the best dimension of AIDA analysis (if they are all weak, output N/A)"
+            },
+            {
+              "name": "selection_reason",
+              "description": "one sentence description of why you approved/rejected the article"
+            },
+            {
+              "name": "use",
+              "type": "boolean",
+              "description": "true/false"
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "你是「醫念科技（Medmind Technology）」的首席內容總監。\n我們是香港科學園及城大培育的樂齡科技初創公司，專注於「認知障礙（腦退化/失智症）」與「物理復康」遊戲化訓練。我們 Facebook 的 Analytics 是 80% 女性, 20% 男性, 目標受眾 40-70+ 歲, 可以為照顧者 / 產品直接用家。\n\n你的任務是閱讀輸入的文章，發揮你的專業直覺和 AIDA Framework, 決定這篇文章「是否值得為醫念科技的 Facebook 專頁撰寫成貼文」。\n\n【Guardrails - 只要符合以下任一條件，必須直接判定 use = false】\n1. 純廣告/罐頭促銷：其他品牌的純產品推銷、無觀點的 PR 稿、商業軟文。 \n2. 無價值內容：空洞農場文、純行政消息/通告、重複性極高的舊聞、政治敏感話題。 \n3. 無本地/目標領域關聯：完全與香港大眾、認知障礙、物理復康或樂齡照護無關。\n4. 前置檢測與安全退場機制: 在進行 AIDA 評估前，請先檢查輸入內容是否為文章. \n5. 不實醫療證據\n\n【AIDA 評估維度 (B2C 角度)】\n請針對以下四個維度給出短評與強弱評估 (Strong / Medium / Weak)： \n1. Awareness：文章能否提高大眾對腦退化/物理復康/身體協調與肌力的關注？例如: 包含最新權威數據、醫學/科研突破、突出預防/訓練重要性。\n2. Interest：新聞價值與大眾關注度、情感共鳴 (e.g. 切中香港照顧者的日常生活痛點)。\n3. Desire：文章是否包含實用的照護技巧、預防方法或樂齡科技解決方案相關內容，讓讀者閱讀後渴望進一步了解或尋求方法？ \n4. Action (行動驅動力)：內容的議題是否具備足夠的急迫性或討論度，具備促成 FB 社群互動（如轉發給家人、留言討論、自測）的潛力？\n\n\n"
+        }
+      },
+      "id": "d29a248c-2458-4ae1-a933-b4e24c10c213",
+      "name": "Analyze & screen",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        1232,
+        528
+      ],
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": "gpt-5-chat",
+        "options": {}
+      },
+      "id": "c189ef50-0931-49b9-bcb4-435a0b1e6d88",
+      "name": "Analysis model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        1312,
+        752
+      ],
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "JgvCnDZeRp9dVR3c",
+          "name": "Azure Open AI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "86896432-2435-489b-8485-321f27292328",
+              "leftValue": "={{ $json.output.use }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9cac940a-0224-4176-a0de-9380893540b4",
+      "name": "Use it?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1584,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": []
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "a5124ad0-2153-4d9b-a536-8e2fac6a6f58",
+      "name": "Keep analysis",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1808,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是「醫念科技 (MedMind Technology)」的資深健康行銷專家。具備高度同理心，專為 40-70+ 歲香港受眾（80% 女性，主要為照顧者或長者）撰寫 FB 貼文。\n\n# GOAL\n分析輸入的文章，將內容與【指定推廣目標】無縫橋接，撰寫一篇高互動、具同理心的 Facebook 貼文。\n\n# 貼文法則\n1. 長度與結構：250-400 字。必須包含標題，段落之間留白，善用點列式以利手機閱讀。\n2. 表情符號：適度使用 Emoji（例：🧠, 👵, 🏠, 📈）。\n3. 事實性：嚴禁無中生有，絕對不捏造原文未提及的數據、研究、專家言論或實驗結果。\n\n# 撰寫流程與結構 \n1. 標題/Hook：用開場白最多兩句，切中照顧者或長者的痛點與共鳴。不要用任何東西框住標題. 一個表情就夠。\n2. 內容摘要：簡述文章來源或精華資訊，保持溫暖專業的語氣。\n3. 產品橋接：\n   自然地將文章精華過渡到指定產品。用生動、有畫面感的廣東話表達，切忌硬推銷。根據推廣目標融入以下亮點：\n   - 若目標為 \"Neurogym\" 👉 連結「腦有記 2」：遊戲化認知訓練（如麻雀、老香港主題）、支援居家訓練與專業報告。\n   - 若目標為 \"Physioplay\" 👉 連結「復康樂」：運動電競（如平衡、冰壺），邊玩邊提升身體協調與肌力。\n4. 呼籲行動 (CTA)：\n   - 根據貼文主題量身定制，語氣如朋友分享建議般自然。\n   - 引導讀者點擊官網了解更多樂齡科技遊戲化訓練方案 👉 https://www.medmindtechnology.hk/\n5. Hashtags（精選 3-4 個）：\n   - 必帶品牌：#醫念科技 #MedMindTechnology\n   - 對應產品：#腦有記2 或 #復康樂\n   - 主題標籤（擇一）：#樂齡科技 #認知障礙症 #腦部健康 #物理復康 #長者健康\n6. 原文連結（必須置於貼文最後一行）：\n原文連結: {{ $('Scrape article').item.json.data.metadata.url }}\n\n# DYNAMIC CONTEXT\n【行銷人員今日指定的推廣目標】：{{ $('Pick product').item.json.product_choice }}\n\n# INPUT DATA\n【文章標題】: {{ $('Scrape article').item.json.data.metadata.title }}\n【核心內文】: {{ $json.output['clean content'] }}\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "你是「醫念科技 (MedMind Technology)」的資深健康行銷專家，專為 40-70+ 歲香港受眾撰寫具同理心、高互動的 Facebook 貼文。嚴禁捏造原文未提及的事實。"
+        }
+      },
+      "id": "570ddf0e-ae67-4434-972f-6e9a1cf85edd",
+      "name": "Write FB post",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2016,
+        576
+      ],
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "model": "gpt-5-chat",
+        "options": {}
+      },
+      "id": "1ca04d2a-4d96-4e3d-9fc2-c76ca78dfd3d",
+      "name": "Writer model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        2016,
+        800
+      ],
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "JgvCnDZeRp9dVR3c",
+          "name": "Azure Open AI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"output\": \"Your full Facebook post text here...\"\n}"
+      },
+      "id": "85c37be5-dcfa-4aa0-a521-ee4b1d021412",
+      "name": "Post parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        2160,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2dcb5504-3ae0-42d8-b882-8b1bce01a960",
+              "name": "output",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "68ee25b1-dff8-428c-9bec-ea2e2b5efa58",
+              "name": "title",
+              "value": "={{ $('Scrape article').item.json.data.metadata['og:title'] }}",
+              "type": "string"
+            },
+            {
+              "id": "c5283545-9cfa-4f73-80fa-89fbc4b91172",
+              "name": "clean_content",
+              "value": "={{ $('Keep analysis').item.json.output['clean content'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "1095e5cc-dbc2-4de2-8b97-cd9824fb6e41",
+      "name": "Assemble draft",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2384,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "gaM3H2E7o9GrO450",
+          "mode": "list",
+          "cachedResultName": "Post Drafts"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "facebook_post": "={{ $json.output }}",
+            "article_url": "={{ $('Get new articles').item.json.url }}",
+            "article_title": "={{ $('Get new articles').item.json.title }}",
+            "target_product": "={{ $('Pick product').item.json.product_choice }}",
+            "selection_reason": "={{ $('Keep analysis').item.json.output.selection_reason }}",
+            "aida_analysis": "={{ $('Keep analysis').item.json.output.aida_analysis }}",
+            "best_dimension": "={{ $('Keep analysis').item.json.output.best_dimension }}",
+            "pubdate": "={{ $('Get new articles').item.json.pubdate }}",
+            "created_date": "={{ $now.toFormat('yyyy-MM-dd HH:mm') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "facebook_post",
+              "displayName": "facebook_post",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "article_url",
+              "displayName": "article_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "article_title",
+              "displayName": "article_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "target_product",
+              "displayName": "target_product",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "selection_reason",
+              "displayName": "selection_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "aida_analysis",
+              "displayName": "aida_analysis",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "best_dimension",
+              "displayName": "best_dimension",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "pubdate",
+              "displayName": "pubdate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "created_date",
+              "displayName": "created_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "82b405d7-302c-44c3-99bb-49600ddde53f",
+      "name": "Save draft",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "xmYJXzW5u02RbmGi",
+          "mode": "list",
+          "cachedResultName": "Articles"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "url",
+              "keyValue": "={{ $('Get new articles').item.json.url }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": 1,
+            "selection_reason": "={{ $('Keep analysis').item.json.output.selection_reason }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "selection_reason",
+              "displayName": "selection_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "83ceb614-dc77-4966-a520-f1656192f0df",
+      "name": "Mark as posted",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2896,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "ZIMzn15J7emLU6EM",
+          "cachedResultName": "Newsjacking - Image"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "article_url": "={{ $json.url }}",
+            "article_title": "={{ $('Get new articles').item.json.title }}",
+            "clean_content": "={{ $('Keep analysis').item.json.output['clean content'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "article_url",
+              "displayName": "article_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "article_title",
+              "displayName": "article_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "clean_content",
+              "displayName": "clean_content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "19bfee1b-a5d7-4a80-982f-93d68021c06b",
+      "name": "Generate image",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        3216,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "xmYJXzW5u02RbmGi",
+          "mode": "list",
+          "cachedResultName": "Articles"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "url",
+              "keyValue": "={{ $('Loop articles').item.json.url }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": 3,
+            "selection_reason": "={{ $json.output.selection_reason }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "selection_reason",
+              "displayName": "selection_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "723fe64c-46e2-4db8-a214-99a12f854318",
+      "name": "Mark not used",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1952,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "00b58522-9587-460b-b6f3-426fe72dd192",
+      "name": "Loop articles",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        784,
+        1072
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "xmYJXzW5u02RbmGi",
+          "mode": "list",
+          "cachedResultName": "Articles"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "url",
+              "keyValue": "={{ $('Loop articles').item.json.url }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": 2
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "21b17071-7aed-4a10-9472-0b2d784c30cc",
+      "name": "Mark scrape failed",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1296,
+        928
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Status\nNULL: not used before\n1: use to post\n2: scrape content error\n3: did not use to post",
+        "height": 208,
+        "width": 356
+      },
+      "id": "e5e584ac-f0fc-48b8-97b2-205eab73ba63",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1472,
+        928
+      ]
+    },
+    {
+      "parameters": {
+        "content": "image gen moved to sub-workflow\n\"Newsjacking - Image\"\ntriggered after Mark as posted"
+      },
+      "id": "f43bfe2a-d153-455b-bfe6-4450e50e39e5",
+      "name": "Sticky Note5",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2832,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "maxItems": 10
+      },
+      "id": "c0dd0795-748d-41b0-8d64-87737850f99f",
+      "name": "Limit to 10",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        560,
+        1072
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Pick product": {
+      "main": [
+        [
+          {
+            "node": "Get new articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get new articles": {
+      "main": [
+        [
+          {
+            "node": "Sort by newest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort by newest": {
+      "main": [
+        [
+          {
+            "node": "Limit to 10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape article": {
+      "main": [
+        [
+          {
+            "node": "Analyze & screen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark scrape failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze & screen": {
+      "main": [
+        [
+          {
+            "node": "Use it?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analysis model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Analyze & screen",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use it?": {
+      "main": [
+        [
+          {
+            "node": "Keep analysis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark not used",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep analysis": {
+      "main": [
+        [
+          {
+            "node": "Write FB post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write FB post": {
+      "main": [
+        [
+          {
+            "node": "Assemble draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Writer model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Write FB post",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Write FB post",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assemble draft": {
+      "main": [
+        [
+          {
+            "node": "Save draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save draft": {
+      "main": [
+        [
+          {
+            "node": "Mark as posted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark as posted": {
+      "main": [
+        [
+          {
+            "node": "Generate image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark not used": {
+      "main": [
+        [
+          {
+            "node": "Loop articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop articles": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Scrape article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark scrape failed": {
+      "main": [
+        [
+          {
+            "node": "Loop articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit to 10": {
+      "main": [
+        [
+          {
+            "node": "Loop articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "b3b9d738-9dc5-4804-845c-3c3bfdfd4bc8",
+  "meta": {
+    "instanceId": "3ad08c9f06e9dcd573525de369666bfa4690ba7c286dcd9b6cd307b758af1082"
+  },
+  "nodeGroups": [],
+  "id": "CVxILoIqfGYlJP4v",
+  "tags": []
+}

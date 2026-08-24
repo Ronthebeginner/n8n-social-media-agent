@@ -1,0 +1,547 @@
+{
+  "name": "Newsjacking - Image",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "article_url"
+            },
+            {
+              "name": "article_title"
+            },
+            {
+              "name": "clean_content"
+            }
+          ]
+        }
+      },
+      "id": "35d31fdb-ba94-4705-89e4-bbb5735b78f2",
+      "name": "When called",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an Editorial Visual Director for a healthcare social media platform targeting a 40-70 age demographic.\n\nYOUR TASK:\nExtract ONE clear, grounded scene from the news article that captures its core message.\nFollow this extraction logic: Analyse title first, if relevant, use. If not, analyse clean content.\n\nEXECUTION STEPS:\n1. Core Action: Identify the main real-world action or interaction in the article.\n2. Hero Subject: Define ONE primary subject (e.g., an active senior or a caregiver). Use an East Asian / Hong Kong aesthetic.\n3. Scene Setup: Place the subject in a realistic, everyday environment performing a natural activity.\n\nOUTPUT RULES:\n- dominant_palette: Exactly 3 high-contrast, light color names\n- subject_summary: Exactly 2 simple sentences describing the scene. \n  * Sentence 1: Primary subject, physical posture, and exact real-world action.\n  * Sentence 2: Environmental setting and natural facial expression.\n  * Constraint: Describe only physically possible scenes with limited adjectives.\n\nVISUAL TONE:\nLight, high-key atmosphere. Clean and minimalist setting.\n\n---\n[Article Content]\nTitle: {{ $json.article_title }}\nContent: {{ $json.clean_content }}\n\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an Editorial Visual Director for a healthcare social media platform targeting a 40-70 age demographic. Describe only physically possible, grounded scenes.",
+          "passthroughBinaryImages": true
+        }
+      },
+      "id": "80070328-bf44-4fe6-af00-eb53099717d6",
+      "name": "Describe scene",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-5-chat",
+        "options": {}
+      },
+      "id": "7c4a7db6-b492-4b43-8f48-5a91b3e9d1e1",
+      "name": "Vision model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
+      "typeVersion": 1,
+      "position": [
+        224,
+        352
+      ],
+      "credentials": {
+        "azureOpenAiApi": {
+          "id": "JgvCnDZeRp9dVR3c",
+          "name": "Azure Open AI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"dominant_palette\": \"...\",\n  \"subject_summary\": \"...\"\n}"
+      },
+      "id": "96d475a0-ec2a-409d-b447-fab3fdbaee10",
+      "name": "Scene parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        368,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const vision = $input.first().json.output;\n\nconst cleanSummary = vision.subject_summary.replace(/\\.+$/, '');\n\nconst final_prompt = `Hand-drawn illustration style, nostalgic 90s cel-shaded anime aesthetic, Ghibli-esque environment. ${cleanSummary}. Ambient scene in ${vision.dominant_palette} with soft, bright natural daylight. Fine paper stipple grain texture, soft organic colored-pencil linework, soft-focus painted background, minimalist composition, textless.`.trim();\n\nreturn {\n  final_prompt: final_prompt\n};"
+      },
+      "id": "686e171a-59c1-4ecf-a59f-faf164102c33",
+      "name": "Build image prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.kie.ai/api/v1/jobs/recordInfo?taskId={{ $json.data.taskId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
+        "options": {}
+      },
+      "id": "02530704-ce27-4d2a-9ff2-870e7c216ff3",
+      "name": "Check image status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1024,
+        128
+      ],
+      "retryOnFail": true,
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "l53eUjFQjeMVk2U3",
+          "name": "KIE.AI Bearer"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.data.state }}",
+                    "rightValue": "success",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "6c02117a-d125-4ea9-9152-d9a8e9af9c7e"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "4920470c-9320-4c09-904d-cbf10abdd3dd",
+                    "leftValue": "={{ $json.data.state }}",
+                    "rightValue": "fail",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "fc598486-148c-41df-a7c6-6fcf4533ccae",
+                    "leftValue": "={{ $json.data.state }}",
+                    "rightValue": "waiting",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7956cdcc-8c5f-43c6-bdf2-0a10b7f1a9e5",
+      "name": "Route by status",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1248,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "gaM3H2E7o9GrO450",
+          "mode": "list",
+          "cachedResultName": "Post Drafts"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "article_url",
+              "keyValue": "={{ $('When called').item.json.article_url }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "image_url": "={{ JSON.parse($json.data.resultJson).resultUrls[0] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "facebook_post",
+              "displayName": "facebook_post",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "article_url",
+              "displayName": "article_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "article_title",
+              "displayName": "article_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "target_product",
+              "displayName": "target_product",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "selection_reason",
+              "displayName": "selection_reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "aida_analysis",
+              "displayName": "aida_analysis",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "best_dimension",
+              "displayName": "best_dimension",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "pubdate",
+              "displayName": "pubdate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "created_date",
+              "displayName": "created_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "d3737b4d-445f-4625-bae3-0119032c423a",
+      "name": "Save image url",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1520,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.image_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "AI_image"
+            }
+          }
+        }
+      },
+      "id": "fe17cb54-dd2f-4a8a-b522-05921488425e",
+      "name": "Download image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1744,
+        16
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "02b014e1-c791-4540-a01d-52c2cc40a32b",
+      "name": "Wait 5s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1472,
+        224
+      ],
+      "webhookId": "c8b2fff6-f376-418d-b419-66a9683e91ba"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.kie.ai/api/v1/flux/kontext/generate",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "={{ $json.final_prompt }}"
+            },
+            {
+              "name": "aspectRatio",
+              "value": "3:4"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        800,
+        128
+      ],
+      "id": "53489fd3-8379-4bb5-a066-29c066399aeb",
+      "name": "Create Image",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "l53eUjFQjeMVk2U3",
+          "name": "KIE.AI Bearer"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When called": {
+      "main": [
+        [
+          {
+            "node": "Describe scene",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Describe scene": {
+      "main": [
+        [
+          {
+            "node": "Build image prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vision model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Describe scene",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scene parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Describe scene",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build image prompt": {
+      "main": [
+        [
+          {
+            "node": "Create Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check image status": {
+      "main": [
+        [
+          {
+            "node": "Route by status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by status": {
+      "main": [
+        [
+          {
+            "node": "Save image url",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        [
+          {
+            "node": "Wait 5s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save image url": {
+      "main": [
+        [
+          {
+            "node": "Download image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download image": {
+      "main": [
+        []
+      ]
+    },
+    "Wait 5s": {
+      "main": [
+        [
+          {
+            "node": "Check image status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Image": {
+      "main": [
+        [
+          {
+            "node": "Check image status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "95ad6736-2a6c-404e-9029-10eee85154f3",
+  "meta": {
+    "instanceId": "3ad08c9f06e9dcd573525de369666bfa4690ba7c286dcd9b6cd307b758af1082"
+  },
+  "nodeGroups": [],
+  "id": "ZIMzn15J7emLU6EM",
+  "tags": []
+}

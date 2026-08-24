@@ -1,0 +1,342 @@
+{
+  "name": "RSS Read News",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://www.google.com/alerts/feeds/11211449710527990752/1832898653402621061",
+        "options": {
+          "customFields": "",
+          "ignoreSSL": false
+        }
+      },
+      "name": "Google Alerts: 認知障礙",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -368,
+        -128
+      ],
+      "id": "303863eb-5d65-456c-a32e-b6714f84cae6",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://www.google.com/alerts/feeds/11211449710527990752/9486613642763531763",
+        "options": {
+          "ignoreSSL": false
+        }
+      },
+      "name": "google alerts 物理治療/復康運動",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -368,
+        64
+      ],
+      "id": "a6d0d633-b17d-4a1d-9f3d-b3454c00def6",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -592,
+        -48
+      ],
+      "id": "e1653a58-04f1-418e-96aa-7ee5c564c8c7"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 1. 獲取原始連結\nconst rawLink = $input.item.json.link || \"\";\n\nlet cleanUrl = rawLink;\n\nif (rawLink.includes(\"google.com/url\")) {\n  try {\n    // 解析 Google URL 中的參數\n    const parsedUrl = new URL(rawLink);\n    let targetUrl = parsedUrl.searchParams.get(\"url\");\n    \n    if (targetUrl) {\n      // 進行一次或多次解碼，防止 URL 被編碼成 %3A%2F%2F 導致 Firecrawl 無法辨識\n      cleanUrl = decodeURIComponent(targetUrl);\n    }\n  } catch (e) {\n    // 備用方案：正則表達式解析\n    const match = rawLink.match(/url=([^&]+)/);\n    if (match && match[1]) {\n      cleanUrl = decodeURIComponent(match[1]);\n    }\n  }\n}\n\n// 2. 確保網址是乾淨的純文字，並去掉前後空格\ncleanUrl = cleanUrl.trim();\n\n// 3. 輸出乾淨的網址給下一個 Firecrawl 節點\nreturn {\n  json: {\n    ...$input.item.json, \n    cleanUrl: cleanUrl    // 這個就是你要餵給 Firecrawl 的欄位\n  }\n};\n"
+      },
+      "name": "Get clean url",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "retryOnFail": true,
+      "position": [
+        304,
+        -48
+      ],
+      "id": "80662d81-8003-4eb6-aeea-5cc3d810f449"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6d9e3a1e-9b03-4108-b095-ee5e3d1fa85d",
+              "name": "category",
+              "value": "Neurogym",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "name": "Edit Fields1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -128,
+        -144
+      ],
+      "id": "052ec84b-acd2-4bf7-9ad1-fb7a6b005f89"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "082ab40c-7072-47c6-8bb1-145ffc9962b7",
+              "name": "category",
+              "value": "Physioplay",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "name": "Edit Fields2",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -128,
+        48
+      ],
+      "id": "42ac2641-b8bd-425b-a68c-b5c76840b608"
+    },
+    {
+      "parameters": {},
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        80,
+        -48
+      ],
+      "id": "ea784559-db37-40b8-a15b-4361fcce6035"
+    },
+    {
+      "parameters": {
+        "operation": "rowNotExists",
+        "dataTableId": {
+          "__rl": true,
+          "value": "xmYJXzW5u02RbmGi",
+          "mode": "list",
+          "cachedResultName": "Articles"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "url",
+              "keyValue": "={{ $json.cleanUrl }}"
+            }
+          ]
+        }
+      },
+      "name": "Update new articles",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        528,
+        -48
+      ],
+      "id": "a2afa3d7-c56f-4943-9e13-8e06d77034c3"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "xmYJXzW5u02RbmGi",
+          "mode": "list",
+          "cachedResultName": "Articles"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "url": "={{ $json.cleanUrl }}",
+            "title": "={{ $json.title }}",
+            "category": "={{ $json.category }}",
+            "pubdate": "={{ $json.pubDate }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "pubdate",
+              "displayName": "pubdate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "name": "Insert row",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        752,
+        -48
+      ],
+      "id": "380e3e6a-3edc-45a8-bbd8-d5577c929482"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Alerts: 認知障礙": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "google alerts 物理治療/復康運動": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Google Alerts: 認知障礙",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "google alerts 物理治療/復康運動",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get clean url": {
+      "main": [
+        [
+          {
+            "node": "Update new articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Get clean url",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update new articles": {
+      "main": [
+        [
+          {
+            "node": "Insert row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "83c19e2e-026e-4185-b6a7-22e4fb2786a3",
+  "meta": {
+    "instanceId": "3ad08c9f06e9dcd573525de369666bfa4690ba7c286dcd9b6cd307b758af1082"
+  },
+  "nodeGroups": [],
+  "id": "lKznDlt2OzszBEWx",
+  "tags": []
+}
