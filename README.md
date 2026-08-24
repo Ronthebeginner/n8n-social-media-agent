@@ -17,7 +17,8 @@ Just scrapes news, drafts a Facebook post, and generates an image. Built for my 
 
 - **n8n** – workflow automation
 - **RSS feeds** – generic news sources
-- **Flux** – image generation model
+- **Flux kontext image generation model**
+- **Azure chat model** 
 - **Facebook API** – for posting (manual approval for now)
 
 ---
