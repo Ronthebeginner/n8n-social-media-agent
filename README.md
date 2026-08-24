@@ -1,6 +1,6 @@
 # n8n Social Media Agent 🤖
 
-Just scrapes news, drafts a Facebook post, and generates an image. Built for my internship at a healthtech startup.
+Just scrapes news, drafts a Facebook post, and generates an image. Built for my internship at medmind technology limited, a medtech startup.
 
 ---
 
