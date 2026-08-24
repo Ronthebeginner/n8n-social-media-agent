@@ -41,7 +41,5 @@ Just scrapes news, drafts a Facebook post, and generates an image. Built for my 
 
 ---
 
-## 🚧 Current Status
 
-The drafting pipeline is fully automated.  
 
